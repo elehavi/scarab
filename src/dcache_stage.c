@@ -431,6 +431,10 @@ void update_dcache_stage(Stage_Data* src_sd) {
             STAT_EVENT(op->proc_id, DCACHE_MISS_LD_ONPATH);
             op->oracle_info.dcmiss = TRUE;
             STAT_EVENT(op->proc_id, DCACHE_MISS_LD);
+            // TODO: how to check which miss so you can stat i
+            STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_COMPULSORY);
+            STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CONFLICT);
+            STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CAPACITY);
           } else {
             wrongpath_dcmiss = TRUE;
             STAT_EVENT(op->proc_id, DCACHE_MISS_OFFPATH);
@@ -544,6 +548,10 @@ void update_dcache_stage(Stage_Data* src_sd) {
             STAT_EVENT(op->proc_id, DCACHE_MISS_ST_ONPATH);
             op->oracle_info.dcmiss = TRUE;
             STAT_EVENT(op->proc_id, DCACHE_MISS_ST);
+            // TODO: how to check which miss so you can stat it
+            STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_COMPULSORY);
+            STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CONFLICT);
+            STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CAPACITY);
           } else {
             wrongpath_dcmiss = TRUE;
             STAT_EVENT(op->proc_id, DCACHE_MISS_OFFPATH);
