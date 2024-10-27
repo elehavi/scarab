@@ -30,6 +30,7 @@
 #define __DCACHE_STAGE_H__
 
 #include "libs/cache_lib.h"
+#include "libs/hash_lib.h"
 #include "stage_data.h"
 
 /**************************************************************************************/
