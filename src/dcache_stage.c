@@ -63,9 +63,10 @@
 /* Global Variables */
 
 Dcache_Stage* dc = NULL;
-Cache* dcache2;
+Cache dcache2;
 /* create Hash Table to track memory addresses */
 Hash_Table previously_accessed;
+Flag new_entry = FALSE;
 
 void* comp_miss; // 0 if address was accessed, 1 if not
 int conf_miss = 0; // 0 if not in either cache, 1 if in dc->dcache but not dcache2
@@ -101,8 +102,11 @@ void init_dcache_stage(uns8 proc_id, const char* name) {
              
   /* initialize fully associative cache */
   uns FULL_ASSOC = DCACHE_SIZE / DCACHE_LINE_SIZE;
-  init_cache(dcache2, "DCACHE", DCACHE_SIZE, FULL_ASSOC, DCACHE_LINE_SIZE,
+  init_cache(&dcache2, "DCACHE", DCACHE_SIZE, FULL_ASSOC, DCACHE_LINE_SIZE,
              sizeof(Dcache_Data), DCACHE_REPL);
+
+  /* initialize hash table */
+  init_hash_table(&previously_accessed, "previously_accessed",FULL_ASSOC,sizeof(Addr));
 
   reset_dcache_stage();
 
@@ -115,7 +119,7 @@ void init_dcache_stage(uns8 proc_id, const char* name) {
   }
 
   dc->dcache.repl_pref_thresh = DCACHE_REPL_PREF_THRESH;
-  (*dcache2).repl_pref_thresh = DCACHE_REPL_PREF_THRESH;
+  (dcache2).repl_pref_thresh = DCACHE_REPL_PREF_THRESH;
 
   if(DC_PREF_CACHE_ENABLE)
     init_cache(&dc->pref_dcache, "DC_PREF_CACHE", DC_PREF_CACHE_SIZE,
@@ -300,8 +304,9 @@ void update_dcache_stage(Stage_Data* src_sd) {
     
     line = (Dcache_Data*)cache_access(&dc->dcache, op->oracle_info.va,
                                       &line_addr, TRUE);
-    line2 = (Dcache_Data*)cache_access(dcache2, op->oracle_info.va,
+    line2 = (Dcache_Data*)cache_access(&dcache2, op->oracle_info.va,
                                       &line_addr, TRUE);
+
     op->dcache_cycle = cycle_count;
     dc->idle_cycle   = MAX2(dc->idle_cycle, cycle_count + DCACHE_CYCLES);
 
@@ -395,7 +400,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
         if(((model->mem == MODEL_MEM) &&
             scan_stores(
               op->oracle_info.va,
-              op->oracle_info.mem_size))) {3  // scan the store forwarding buffer
+              op->oracle_info.mem_size))) {  // scan the store forwarding buffer
           if(!op->off_path) {
             STAT_EVENT(op->proc_id, DCACHE_ST_BUFFER_HIT);
             STAT_EVENT(op->proc_id, DCACHE_ST_BUFFER_HIT_ONPATH);
@@ -447,13 +452,13 @@ void update_dcache_stage(Stage_Data* src_sd) {
             STAT_EVENT(op->proc_id, DCACHE_MISS_LD_ONPATH);
             op->oracle_info.dcmiss = TRUE;
             STAT_EVENT(op->proc_id, DCACHE_MISS_LD);
-            comp_miss = hash_table_access(&previously_accessed, line_addr);
-            if (comp_miss == NULL){
-            STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_COMPULSORY);
+            comp_miss = hash_table_access_create(&previously_accessed, line_addr, &new_entry);
+            if (new_entry){
+              STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_COMPULSORY);
             } else if (line2){ 
-            STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CONFLICT);
+              STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CONFLICT);
             } else {
-            STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CAPACITY);}
+              STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CAPACITY);}
           } else {
             wrongpath_dcmiss = TRUE;
             STAT_EVENT(op->proc_id, DCACHE_MISS_OFFPATH);
@@ -481,6 +486,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
             Addr         one_more_addr;
             Addr         extra_line_addr;
             Dcache_Data* extra_line;
+            Dcache_Data* extra_line2;
 
             one_more_addr = ((line_addr >> LOG2(DCACHE_LINE_SIZE)) & 1) ?
                               ((line_addr >> LOG2(DCACHE_LINE_SIZE)) - 1)
@@ -491,7 +497,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
             
             extra_line = (Dcache_Data*)cache_access(&dc->dcache, one_more_addr,
                                                     &extra_line_addr, FALSE);
-            extra_line2 = (Dcache_Data*)cache_access(dcache2, one_more_addr,
+            extra_line2 = (Dcache_Data*)cache_access(&dcache2, one_more_addr,
                                                     &extra_line_addr, FALSE);
             ASSERT(dc->proc_id, one_more_addr == extra_line_addr);
             if(!extra_line) {
@@ -570,13 +576,13 @@ void update_dcache_stage(Stage_Data* src_sd) {
             STAT_EVENT(op->proc_id, DCACHE_MISS_ST_ONPATH);
             op->oracle_info.dcmiss = TRUE;
             STAT_EVENT(op->proc_id, DCACHE_MISS_ST);
-            comp_miss = hash_table_access(&previously_accessed, line_addr);
-            if (comp_miss == NULL){
-            STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_COMPULSORY);
+            comp_miss = hash_table_access_create(&previously_accessed, line_addr, &new_entry);
+            if (new_entry){
+              STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_COMPULSORY);
             } else if (line2){ 
-            STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CONFLICT);
+              STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CONFLICT);
             } else {
-            STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CAPACITY);}
+              STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CAPACITY);}
           } else {
             wrongpath_dcmiss = TRUE;
             STAT_EVENT(op->proc_id, DCACHE_MISS_OFFPATH);
@@ -625,6 +631,7 @@ Flag dcache_fill_line(Mem_Req* req) {
   uns bank = req->addr >> dc->dcache.shift_bits &
              N_BIT_MASK(LOG2(DCACHE_BANKS));
   Dcache_Data* data;
+  Dcache_Data* data2;
   Addr         line_addr, repl_line_addr;
   Op*          op;
   Op**         op_p  = (Op**)list_start_head_traversal(&req->op_ptrs);
@@ -711,7 +718,7 @@ Flag dcache_fill_line(Mem_Req* req) {
     
     data = (Dcache_Data*)cache_insert(&dc->dcache, dc->proc_id, req->addr,
                                       &line_addr, &repl_line_addr);
-    data2 = (Dcache_Data*)cache_insert(dcache2, dc->proc_id, req->addr,
+    data2 = (Dcache_Data*)cache_insert(&dcache2, dc->proc_id, req->addr,
                                       &line_addr, &repl_line_addr);
     DEBUG(dc->proc_id,
           "Filling dcache  off_path:%d addr:0x%s  :%7d index:%7d op_count:%d "
