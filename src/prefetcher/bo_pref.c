@@ -1,6 +1,6 @@
 /***************************************************************************************
  * File         : bo_pref.c
- * Author       : Ella and Rushali
+ * Author       : Ella Lehavi and Rushali Ghosh
  * Date         : November 2024
  * Description  : Best Offset Prefetcher (https://ieeexplore.ieee.org/document/7446087)
  ***************************************************************************************/
@@ -40,6 +40,7 @@ static Cache*        l1_cache;
 int ROUNDMAX;
 int SCOREMAX;
 int i; // loop variable
+int curr_offset; 
 
 Hash_Table rr_table;  
 Hash_Table score_table;
@@ -71,6 +72,7 @@ void bo_pref_init(void) {
 
     ROUNDMAX = 1;
     SCOREMAX = 15;
+    current_offset = 1;
 }
 
 
@@ -80,19 +82,11 @@ void bo_pref_init(void) {
 /*TODO: prefetch the actual data.*/
  // How/should it b integrated into learning phase?
  // New_mem_req API lets you request memory. Always provide callback fcn!
+ // check if prefetcher is on
 
-/*
-Consists of several rounds. 
-At the start, the score is set to 0.
-On every L2 miss/prefetch hit, test an offset d_i from the list
-If X - d_i hits in the recent requests table, increment its score. 
-Each offset is tested like this once per round. 
-Learning phase ends when either…
-One of the scores hits the maximum, or the number of rounds hits the maximum. 
-We then find the offset with the highest score. This becomes the new offset.
-New learning phase starts
-*/
-void learning_phase(Hash_Table* rr_table, Hash_Table* score_table) {
+/*TODO: fcn for hit and miss that call learning phase*/
+
+void learning_phase(Hash_Table* rr_table, Hash_Table* score_table, bool hit) {
     int scoremax_reached;
     int optimal_offset;
     // TODO: set values in score table to 0. memset?
@@ -117,6 +111,7 @@ void learning_phase(Hash_Table* rr_table, Hash_Table* score_table) {
     }
 
     // TODO: set best offset to the prefetch offset
+    current_offset = optimal_offset;
     // TODO: tie?
     /* Learning phase ends when:
     one of the scores equals SCOREMAX, 

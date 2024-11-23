@@ -46,7 +46,7 @@
 // TODO: What is HWP? 
 void init_prefetch(void);
 void bo_pref_init(void /* HWP* hwp */);
-
+void learning_phase(Hash_Table* rr_table, Hash_Table* score_table, bool hit);
 
 
 #endif
