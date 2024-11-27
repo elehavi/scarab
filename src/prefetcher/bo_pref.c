@@ -41,6 +41,8 @@ int ROUNDMAX;
 int SCOREMAX;
 int i; // loop variable
 int curr_offset; 
+int ideal_offset;
+int round;
 
 Hash_Table rr_table;  
 Hash_Table score_table;
@@ -70,6 +72,8 @@ void bo_pref_init(void) {
     // score table
     init_hash_table(&score_table, "Score Table", 51, sizeof(int) );
 
+
+
     ROUNDMAX = 1;
     SCOREMAX = 15;
     current_offset = 1;
@@ -86,34 +90,32 @@ void bo_pref_init(void) {
 
 /*TODO: fcn for hit and miss that call learning phase*/
 
-void learning_phase(Hash_Table* rr_table, Hash_Table* score_table, bool hit) {
-    int scoremax_reached;
-    int optimal_offset;
-    // TODO: set values in score table to 0. memset?
-    // Check for prefetch miss/hit
-    // TODO: update RR table whenever a prefetch request is made
-    for (i = 0; i < ROUNDMAX; i++) {
-        // TODO: is each round 1 access
-        // for each offset
-            // test prefetching from the offset
-            // if it hits in RR table, score +=1
-            // if score max, break out of both loops.
-            if (score == SCOREMAX) {
-                scoremax_reached = 1;
-                optimal_offset = offset;
-                break;
-                // TODO: could we return?
-            }
-        if (scoremax_reached) {
-            break;
-        }  
-
+void handle_round(BO_Pref* prefetcher, Addr line_addr) {
+    /*
+    INPUTS: Address being accessed, offset tested, current ideal offset, RR table, Score table
+    OUTPUTS: 
+    */
+    if (round == 0) {
+        // set values in score table to 0
+    } 
+    // X is accessed address.
+    // d is offset being tested (offset)
+    // D is curr_offset
+    // We've accessed line X. check for X-d+D in RR table
+    // if it hits in RR table, score +=1
+    // if score max, break out of both loops.
+    round++;
+    if (round >= ROUNDMAX) {
+        // learning phase complete. select highest offset and set rounds to 0
+    } else if (/*most recent score is scoremax*/) {
+        // select that offset. end learning phase and set round to 0
     }
 
-    // TODO: set best offset to the prefetch offset
-    current_offset = optimal_offset;
-    // TODO: tie?
-    /* Learning phase ends when:
-    one of the scores equals SCOREMAX, 
-    the number of rounds equals ROUNDMAX (a fixed parameter).*/
 }
+
+void update_rr_table(BO_Pref* prefetcher, Addr line_addr) {
+    // TODO: update RR table whenever a prefetch request is completed
+    // Convert the address to its tag.
+    // add it to the rr table
+}
+ 
