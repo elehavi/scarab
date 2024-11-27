@@ -5,7 +5,7 @@
  * Description  : L2 to L1 prefetcher support functions
  ***************************************************************************************/
 
-#ifdnef __BO_PREF_H__
+#ifndnef __BO_PREF_H__
 #define __BO_PREF_H__
 
 #include "dcache_stage.h"
@@ -24,35 +24,35 @@
 /* Data Structures */
 
 /* score table */
-typedef struct Score_table_entry_struct {
-    int offset;
-    int score;
-} Score_Table_Entry;
+// typedef struct Score_table_entry_struct {
+//     int offset;
+//     int score;
+// } Score_Table_Entry;
 
-typedef struct Score_table_struct {
-    uns num_offsets;
-    Score_table_entry_struct[num_offsets] table;
-} Score_Table;
+// typedef struct Score_table_struct {
+//     uns num_offsets;
+//     Score_table_entry_struct[num_offsets] table;
+// } Score_Table;
 
 
 typedef struct Bo_pref_struct {
+    HWP* hwp;
     Hash_Table rr_table;
-    Score_Table score_table;
-    int [] offset_list;
-    int curr_offset; 
-    int ideal_offset;
+    uns[] score_table;
+    int[] offset_list;
+    int curr_offset;
     int round;
     uns scoremax;
     uns roundmax;
-} BO_Pref;
+    uns badscore;
+} Pref_BO;
 
 /**************************************************************************************/
 /* Functions/Routines */
 
-// TODO: What is HWP? 
-void init_prefetch(void);
-void bo_pref_init(HWP hwp);
-void prefetch_round(BO_Pref* prefetcher, Addr line_addr);
-void update_rr_table(BO_Pref* prefetcher, Addr line_addr);
+void init_prefetch_bo(void);
+void bo_pref_init(HWP hwp, Pref_BO* pref);
+void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id);
+Flag update_rr_table(Pref_BO* pref, Addr line_addr);
 
 #endif

@@ -840,6 +840,7 @@ PREF_GHB_CZONE_BITS                      12
 PREF_GHB_DEGREE                          16                              
 PREF_GHB_MAX_DEGREE                      32                              
 PREF_STRIDE_ON                           FALSE                           
+PREF_BEST_OFFSET_ON                      TRUE
 DEBUG_PREF_STRIDE                        FALSE                           
 PREF_STRIDE_TABLE_N                      1024                            
 PREF_STRIDE_REGION_BITS                  16                              

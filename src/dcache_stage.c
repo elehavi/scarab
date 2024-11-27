@@ -46,6 +46,7 @@
 #include "prefetcher/pref.param.h"
 #include "prefetcher/pref_common.h"
 #include "prefetcher/stream_pref.h"
+#include "prefetcher/bo_pref.h"
 #include "statistics.h"
 
 #include "cmp_model.h"
@@ -64,6 +65,13 @@
 
 Dcache_Stage* dc = NULL;
 Cache dcache2;
+
+if(PREF_BEST_OFFSET_ON) {
+  HWP hwp;
+  bo_prefetcher = (Pref_BO*)malloc(sizeof(Pref_BO));
+}
+
+
 /* create Hash Table to track memory addresses */
 Hash_Table previously_accessed;
 Flag new_entry = FALSE;
@@ -127,6 +135,14 @@ void init_dcache_stage(uns8 proc_id, const char* name) {
                DCACHE_REPL);
 
   memset(dc->rand_wb_state, 0, NUM_ELEMENTS(dc->rand_wb_state));
+
+  /*
+  TODO:
+    checl?
+    */
+  if(PREF_BEST_OFFSET_ON){
+    bo_pref_init(hwp, bo_prefetcher);
+  }
 }
 
 
@@ -318,7 +334,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
     if(DC_PREF_CACHE_ENABLE && !line) {
       line = dc_pref_cache_access(op);  // if the data hits dc_pref_cache then
                                         // insert to the dcache immediately
-                                        //TODO: update here?
+                                        
     }
 
     op->oracle_info.dcmiss = FALSE;
@@ -338,9 +354,17 @@ void update_dcache_stage(Stage_Data* src_sd) {
       }
     } else if(line) {  // data cache hit
 
+    //TODO: check
+    if(PREF_BEST_OFFSET_ON){
+        if(line->HW_prefetch) {
+          prefetch_round(bo_prefetcher, line_addr, proc_id);
+        }
+      }
+    
+
       if(PREF_FRAMEWORK_ON &&  // if framework is on use new prefetcher.
                                // otherwise old one
-                               // TODO: update/change? add case for bo pref
+                               
          (PREF_UPDATE_ON_WRONGPATH || !op->off_path)) {
         if(line->HW_prefetch) {
           pref_dl0_pref_hit(line_addr, op->inst_info->addr, 0);  // CHANGEME
@@ -390,6 +414,13 @@ void update_dcache_stage(Stage_Data* src_sd) {
         wake_up_ops(op, REG_DATA_DEP, model->wake_hook);
       }
     } else {  // data cache miss
+
+      /*
+      if(BO_PREF_ON) {
+        call function
+      }
+      */
+
       if(op->table_info->mem_type == MEM_ST)
         STAT_EVENT(op->proc_id, POWER_DCACHE_WRITE_MISS);
       else
@@ -616,7 +647,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
     }
   }
   // }}}
-  /* prefetcher update */ // TODO: change/update?
+  /* prefetcher update */ 
   if(STREAM_PREFETCH_ON)
     update_pref_queue();
   if(L2WAY_PREF && !L1PREF_IMMEDIATE)
@@ -630,6 +661,13 @@ void update_dcache_stage(Stage_Data* src_sd) {
 /* dcache_fill_line: */
 
 Flag dcache_fill_line(Mem_Req* req) {
+
+  /*
+  TODO:*/
+  if(PREF_BEST_OFFSET_ON){
+    update_rr_table(bo_prefetcher, line_addr);
+  }
+
   uns bank = req->addr >> dc->dcache.shift_bits &
              N_BIT_MASK(LOG2(DCACHE_BANKS));
   Dcache_Data* data;
@@ -657,8 +695,8 @@ Flag dcache_fill_line(Mem_Req* req) {
   /* get new line in the cache */
   if(DC_PREF_CACHE_ENABLE &&
      ((USE_CONFIRMED_OFF ? req->off_path_confirmed : req->off_path) ||
-      (req->type == MRT_DPRF))) {  // Add prefetches here
-                                    // TODO: prefetch?
+      (req->type == MRT_DPRF))) {  
+
     DEBUG(dc->proc_id,
           "Filling pref_dcache off_path:%d addr:0x%s  :%7d index:%7d "
           "op_count:%d oldest:%lld\n",
@@ -672,7 +710,7 @@ Flag dcache_fill_line(Mem_Req* req) {
     ASSERT(dc->proc_id, cycle_count >= req->emitted_cycle);
     // mark the data as HW_prefetch if prefetch mark it as
     // fetched_by_offpath if off_path this is done downstairs
-    // TODO: is this where we can tell if theres a prefetch hit?
+    
   } else {
     /* Do not insert the line yet, just check which line we
        need to replace. If that line is dirty, it's possible
@@ -749,7 +787,7 @@ Flag dcache_fill_line(Mem_Req* req) {
 
   /* set up dcache line fields */
   data->dirty              = req->dirty_l0 ? TRUE : FALSE;
-  data->prefetch           = TRUE; // TODO: what is this doing
+  data->prefetch           = TRUE;
   data->read_count[0]      = 0;
   data->read_count[1]      = 0;
   data->write_count[0]     = 0;
@@ -820,7 +858,7 @@ Flag dcache_fill_line(Mem_Req* req) {
   if(data->dirty && data->write_count[0] == 0)
     data->write_count[0] = 1;
 
-  // TODO: what is this doing?
+  
   ASSERT(dc->proc_id, data->read_count[0] || data->read_count[1] ||
                         data->write_count[0] || data->write_count[1] ||
                         req->off_path || data->prefetch || data->HW_prefetch);

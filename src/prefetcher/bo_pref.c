@@ -37,12 +37,7 @@ static Cache*        l1_cache;
 /***************************************************************************************/
 /* Local Prototypes */
 
-int ROUNDMAX;
-int SCOREMAX;
-int i; // loop variable
-int curr_offset; 
-int ideal_offset;
-int round;
+Pref_BO* bo_hwp;
 
 Hash_Table rr_table;  
 Hash_Table score_table;
@@ -58,64 +53,115 @@ static const int* const offset_list[] = {1, 2, 3, 4, 5, 6, 8, 9,
 
 /*********************************************************************/
 
-void init_prefetch(void) {
-    // TODO: what goes here?
-    //  maybe hwp stuff...
+void init_prefetch_bo(HWP* hwp) {
+    if(!PREF_BEST_OFFSET_ON) {
+        return;
+    }
+    bo_prefetcher = (Pref_BO*)malloc(sizeof(Pref_BO));
+
+    bo_pref_init(hwp, bo_prefetcher);
 }
 
-void bo_pref_init(void) {
-    // TODO: initialize data structures
+void bo_pref_init(HWP* hwp, Pref_BO* bo_prefetcher) {
+
+    /*initialize hwp info*/
+    bo_prefetcher->hwp_info = hwp->hwp_info;
+    
     // rr table
-    init_hash_table(&rr_table, "RR Table", 
+    init_hash_table(&bo_prefetcher->rr_table, "RR Table", 
                     256 /*TODO: how many buckets?*/, 
                     4 /*TODO: what data size?*/);
+    
     // score table
-    init_hash_table(&score_table, "Score Table", 51, sizeof(int) );
+    bo_prefetcher->score_table = (uns*)malloc(51*sizeof(uns));
+    for (int i = 0; i < 51; i++){
+        bo_prefetcher->score_table[i] = 0;
+    }
+    bo_prefetcher->offset_list = offset_list;
 
-
-
-    ROUNDMAX = 1;
-    SCOREMAX = 15;
-    current_offset = 1;
+    //TODO: malloc for these?
+    bo_prefetcher->roundmax = 1;
+    bo_prefetcher->scoremax; = 15;
+    bo_prefetcher->curr_offset = 1;
+    bo_prefetcher->round = 0;
+    bo_prefetcher->badscore = 0;
 }
 
 
 /*********************************************************************/
 
 
-/*TODO: prefetch the actual data.*/
- // How/should it b integrated into learning phase?
- // New_mem_req API lets you request memory. Always provide callback fcn!
- // check if prefetcher is on
 
-/*TODO: fcn for hit and miss that call learning phase*/
-
-void handle_round(BO_Pref* prefetcher, Addr line_addr) {
+void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id) {
     /*
-    INPUTS: Address being accessed, offset tested, current ideal offset, RR table, Score table
+    INPUTS: Address being accessed , offset tested, current ideal offset, RR table, Score table
     OUTPUTS: 
     */
-    if (round == 0) {
-        // set values in score table to 0
+   uns big_d = current_offset;
+   uns d = 0; 
+   int success = 0;
+   int i= 0;
+   int num_offsets = 51;
+
+   /*STEP 1: prefetch memory at X+D (line_addr + big_d)*/
+    Addr pf_addr = line_addr + big_d;
+    success = new_mem_req(MRT_DPRF, proc_id, pf_addr, DCACHE_LINE_SIZE, 
+                            0, NULL, dcache_fill_line, unique_count, 0);
+
+
+    /* STEP 2: Handle one round in algorithm.*/
+    if(round == 0) {
+        //  set values in score table to 0
+        for(int i = 0; i < 51; i++) {
+            bo_prefetcher->score_table[i] = 0;
+        }
     } 
-    // X is accessed address.
-    // d is offset being tested (offset)
-    // D is curr_offset
-    // We've accessed line X. check for X-d+D in RR table
-    // if it hits in RR table, score +=1
-    // if score max, break out of both loops.
-    round++;
-    if (round >= ROUNDMAX) {
-        // learning phase complete. select highest offset and set rounds to 0
-    } else if (/*most recent score is scoremax*/) {
-        // select that offset. end learning phase and set round to 0
+
+    for(i=0;i<num_offsets;i++) {
+        // We've accessed line X. check for X-d in RR table
+        d = prefetcher->offset_list[i];
+        int addr_xd = line_addr - d;
+        if(hash_table_access(&prefetcher->rr_table, addr_xd)) {
+            prefetcher->score_table[i]++;
+            if(prefetcher->score_table[i] >= prefetcher->scoremax){
+                prefetcher->round = 0;
+                prefetcher->curr_offset = prefetcher->offset_list[i];
+                return;
+            }
+        }
     }
 
+    // if it hits in RR table, score +=1
+    // if score max, break out of both loops.
+    prefetcher->round++;
+    if (prefetcher->round >= ROUNDMAX) {
+        // learning phase complete. select highest offset and set rounds to 0
+        uns highest_score_idx = 0;
+        for (int i = 0; i < 51; i++){
+            if(prefetcher->score_table[i] > prefetcher->score_table[highest_score_idx]) {
+                highest_score_idx = i;
+                // TODO: If time, badscore?
+            }
+        }
+        prefetcher->curr_offset = prefetcher->offset_list[highest_score_idx];
+        prefetcher->round = 0;
+    } 
+    return;
 }
 
-void update_rr_table(BO_Pref* prefetcher, Addr line_addr) {
-    // TODO: update RR table whenever a prefetch request is completed
-    // Convert the address to its tag.
-    // add it to the rr table
+Flag update_rr_table(Pref_BO* pref, Addr line_addr) {
+
+    hash_table_access_create(&pref->rr_table, line_addr, 0);
+    /* TODO:
+      Call dcache_fill_line or do the cleanup its doing.
+      */
+    /* For reference:
+        new_mem_req called in fdip + eic.
+        Both return to instruction_fill_line in icache stage.c.
+        There is a similar dcache_fill_line function in dcache_stage.c
+        We can use these as a basis for this function. 
+
+        Can we call dcache fill line??
+        */
 }
  
