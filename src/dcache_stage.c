@@ -59,6 +59,7 @@
 #define DEBUG(proc_id, args...) _DEBUG(proc_id, DEBUG_DCACHE_STAGE, ##args)
 #define STAGE_MAX_OP_COUNT NUM_FUS
 
+#define PREF_BEST_OFFSET_ON TRUE
 
 /**************************************************************************************/
 /* Global Variables */
@@ -66,10 +67,12 @@
 Dcache_Stage* dc = NULL;
 Cache dcache2;
 
-if(PREF_BEST_OFFSET_ON) {
-  HWP hwp;
-  bo_prefetcher = (Pref_BO*)malloc(sizeof(Pref_BO));
-}
+// if(PREF_BEST_OFFSET_ON) {
+HWP hwp;
+Pref_BO* bo_prefetcher;
+//Pref_BO* bo_prefetcher;
+//bo_prefetcher = (Pref_BO*)malloc(sizeof(Pref_BO));
+// }
 
 
 /* create Hash Table to track memory addresses */
@@ -107,7 +110,7 @@ void init_dcache_stage(uns8 proc_id, const char* name) {
   /* initialize the cache structure */
   init_cache(&dc->dcache, "DCACHE", DCACHE_SIZE, DCACHE_ASSOC, DCACHE_LINE_SIZE,
              sizeof(Dcache_Data), DCACHE_REPL);
-             
+
   /* initialize fully associative cache */
   uns FULL_ASSOC = DCACHE_SIZE / DCACHE_LINE_SIZE;
   init_cache(&dcache2, "DCACHE", DCACHE_SIZE, FULL_ASSOC, DCACHE_LINE_SIZE,
@@ -141,7 +144,9 @@ void init_dcache_stage(uns8 proc_id, const char* name) {
     checl?
     */
   if(PREF_BEST_OFFSET_ON){
-    bo_pref_init(hwp, bo_prefetcher);
+    pref_init();
+    bo_prefetcher = (Pref_BO*)malloc(sizeof(Pref_BO));
+    bo_pref_init(&hwp, bo_prefetcher);
   }
 }
 
@@ -317,7 +322,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
     /* now access the dcache with it */
 
-    
+
     line = (Dcache_Data*)cache_access(&dc->dcache, op->oracle_info.va,
                                       &line_addr, TRUE);
     line2 = (Dcache_Data*)cache_access(&dcache2, op->oracle_info.va,
@@ -334,7 +339,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
     if(DC_PREF_CACHE_ENABLE && !line) {
       line = dc_pref_cache_access(op);  // if the data hits dc_pref_cache then
                                         // insert to the dcache immediately
-                                        
+
     }
 
     op->oracle_info.dcmiss = FALSE;
@@ -357,14 +362,14 @@ void update_dcache_stage(Stage_Data* src_sd) {
     //TODO: check
     if(PREF_BEST_OFFSET_ON){
         if(line->HW_prefetch) {
-          prefetch_round(bo_prefetcher, line_addr, proc_id);
+          prefetch_round(bo_prefetcher, line_addr, op->proc_id);
         }
       }
-    
+
 
       if(PREF_FRAMEWORK_ON &&  // if framework is on use new prefetcher.
                                // otherwise old one
-                               
+
          (PREF_UPDATE_ON_WRONGPATH || !op->off_path)) {
         if(line->HW_prefetch) {
           pref_dl0_pref_hit(line_addr, op->inst_info->addr, 0);  // CHANGEME
@@ -486,12 +491,12 @@ void update_dcache_stage(Stage_Data* src_sd) {
             op->oracle_info.dcmiss = TRUE;
             STAT_EVENT(op->proc_id, DCACHE_MISS_LD);
             comp_miss = hash_table_access_create(&previously_accessed, line_addr, &new_entry);
-            if (new_entry){
-              STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_COMPULSORY);
-            } else if (line2){ 
-              STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CONFLICT);
-            } else {
-              STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CAPACITY);}
+           // if (new_entry){
+          //    STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_COMPULSORY);
+           // } else if (line2){
+            //  STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CONFLICT);
+           // } else {
+             // STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CAPACITY);}
           } else {
             wrongpath_dcmiss = TRUE;
             STAT_EVENT(op->proc_id, DCACHE_MISS_OFFPATH);
@@ -527,7 +532,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
                               ((line_addr >> LOG2(DCACHE_LINE_SIZE)) + 1)
                                 << LOG2(DCACHE_LINE_SIZE);
 
-            
+
             extra_line = (Dcache_Data*)cache_access(&dc->dcache, one_more_addr,
                                                     &extra_line_addr, FALSE);
             extra_line2 = (Dcache_Data*)cache_access(&dcache2, one_more_addr,
@@ -610,12 +615,12 @@ void update_dcache_stage(Stage_Data* src_sd) {
             op->oracle_info.dcmiss = TRUE;
             STAT_EVENT(op->proc_id, DCACHE_MISS_ST);
             comp_miss = hash_table_access_create(&previously_accessed, line_addr, &new_entry);
-            if (new_entry){
-              STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_COMPULSORY);
-            } else if (line2){ 
-              STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CONFLICT);
-            } else {
-              STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CAPACITY);}
+           // if (new_entry){
+             // STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_COMPULSORY);
+            //} else if (line2){
+              //STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CONFLICT);
+           // } else {
+              //STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH_CAPACITY);}
           } else {
             wrongpath_dcmiss = TRUE;
             STAT_EVENT(op->proc_id, DCACHE_MISS_OFFPATH);
@@ -647,7 +652,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
     }
   }
   // }}}
-  /* prefetcher update */ 
+  /* prefetcher update */
   if(STREAM_PREFETCH_ON)
     update_pref_queue();
   if(L2WAY_PREF && !L1PREF_IMMEDIATE)
@@ -663,10 +668,10 @@ void update_dcache_stage(Stage_Data* src_sd) {
 Flag dcache_fill_line(Mem_Req* req) {
 
   /*
-  TODO:*/
+  TODO:
   if(PREF_BEST_OFFSET_ON){
     update_rr_table(bo_prefetcher, line_addr);
-  }
+  }*/
 
   uns bank = req->addr >> dc->dcache.shift_bits &
              N_BIT_MASK(LOG2(DCACHE_BANKS));
@@ -685,6 +690,12 @@ Flag dcache_fill_line(Mem_Req* req) {
   ASSERT(dc->proc_id, req->op_count == req->op_ptrs.count);
   ASSERT(dc->proc_id, req->op_count == req->op_uniques.count);
 
+  /*
+  TODO:*/
+  if(PREF_BEST_OFFSET_ON){
+    update_rr_table(bo_prefetcher, line_addr);
+  }
+
   /* if it can't get a write port, fail */
   if(!get_write_port(&dc->ports[bank])) {
     cycle_count = old_cycle_count;
@@ -695,7 +706,7 @@ Flag dcache_fill_line(Mem_Req* req) {
   /* get new line in the cache */
   if(DC_PREF_CACHE_ENABLE &&
      ((USE_CONFIRMED_OFF ? req->off_path_confirmed : req->off_path) ||
-      (req->type == MRT_DPRF))) {  
+      (req->type == MRT_DPRF))) {
 
     DEBUG(dc->proc_id,
           "Filling pref_dcache off_path:%d addr:0x%s  :%7d index:%7d "
@@ -710,7 +721,7 @@ Flag dcache_fill_line(Mem_Req* req) {
     ASSERT(dc->proc_id, cycle_count >= req->emitted_cycle);
     // mark the data as HW_prefetch if prefetch mark it as
     // fetched_by_offpath if off_path this is done downstairs
-    
+
   } else {
     /* Do not insert the line yet, just check which line we
        need to replace. If that line is dirty, it's possible
@@ -756,8 +767,8 @@ Flag dcache_fill_line(Mem_Req* req) {
       STAT_EVENT(dc->proc_id, DCACHE_WB_REQ_DIRTY);
       STAT_EVENT(dc->proc_id, DCACHE_WB_REQ);
     }
-    
-    
+
+
     data = (Dcache_Data*)cache_insert(&dc->dcache, dc->proc_id, req->addr,
                                       &line_addr, &repl_line_addr);
     data2 = (Dcache_Data*)cache_insert(&dcache2, dc->proc_id, req->addr,
@@ -771,7 +782,7 @@ Flag dcache_fill_line(Mem_Req* req) {
     STAT_EVENT(dc->proc_id, DCACHE_FILL);
     ASSERT(dc->proc_id, req->emitted_cycle);
     ASSERT(dc->proc_id, cycle_count >= req->emitted_cycle);
-    ASSERT(dc->proc_id, ((int)req->mlc_hit + (int)req->l1_hit) < 2); 
+    ASSERT(dc->proc_id, ((int)req->mlc_hit + (int)req->l1_hit) < 2);
     INC_STAT_EVENT(dc->proc_id, DATA_LD_CYCLES_ONPATH + req->off_path, cycle_count - req->emitted_cycle);
     if (req->mlc_hit) {
       STAT_EVENT(dc->proc_id, DATA_LD_MLC_ACCESSES_ONPATH + req->off_path);
@@ -858,7 +869,7 @@ Flag dcache_fill_line(Mem_Req* req) {
   if(data->dirty && data->write_count[0] == 0)
     data->write_count[0] = 1;
 
-  
+
   ASSERT(dc->proc_id, data->read_count[0] || data->read_count[1] ||
                         data->write_count[0] || data->write_count[1] ||
                         req->off_path || data->prefetch || data->HW_prefetch);

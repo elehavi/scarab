@@ -748,7 +748,7 @@ L2HIT_PREF_REQ_Q_SIZE                    128
 L2HIT_L2ACCESS_REQ_Q_SIZE                64                              
 PREF_STREAM_ACCPERSTREAM                 FALSE                           
 PREF_ACC_DISTANCE_10                     128                             
-PREF_FRAMEWORK_ON                        FALSE                           1
+PREF_FRAMEWORK_ON                        TRUE                          1
 PREF_TRACE_ON                            FALSE                           
 PREF_DL0REQ_QUEUE_SIZE                   32                              
 PREF_UMLC_REQ_QUEUE_SIZE                 64                              

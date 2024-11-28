@@ -5,7 +5,7 @@
  * Description  : L2 to L1 prefetcher support functions
  ***************************************************************************************/
 
-#ifndnef __BO_PREF_H__
+#ifndef __BO_PREF_H__
 #define __BO_PREF_H__
 
 #include "dcache_stage.h"
@@ -13,6 +13,7 @@
 #include "libs/hash_lib.h"
 #include "pref_type.h"
 
+typedef unsigned uns;
 /**************************************************************************************/
 /* Global vars */
 
@@ -38,8 +39,8 @@
 typedef struct Bo_pref_struct {
     HWP* hwp;
     Hash_Table rr_table;
-    uns[] score_table;
-    int[] offset_list;
+    uns score_table[51];
+    int offset_list[51];
     int curr_offset;
     int round;
     uns scoremax;
@@ -50,8 +51,8 @@ typedef struct Bo_pref_struct {
 /**************************************************************************************/
 /* Functions/Routines */
 
-void init_prefetch_bo(void);
-void bo_pref_init(HWP hwp, Pref_BO* pref);
+//void init_prefetch_bo(void);
+void bo_pref_init(HWP* hwp, Pref_BO* pref);
 void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id);
 Flag update_rr_table(Pref_BO* pref, Addr line_addr);
 
