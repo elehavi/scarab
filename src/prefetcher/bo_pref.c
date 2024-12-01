@@ -22,7 +22,8 @@
 #include "libs/list_lib.h"
 #include "memory/memory.h"
 #include "memory/memory.param.h"
-#include "bo_pref.h"
+#include "memory/mem_req.h"
+#include "prefetcher/bo_pref.h"
 // #include "prefetcher//pref_stride.param.h"
 #include "prefetcher/pref.param.h"
 #include "prefetcher/pref_common.h"
@@ -66,7 +67,9 @@ void init_prefetch_bo(HWP* hwp) {
 void bo_pref_init(HWP* hwp, Pref_BO* bo_prefetcher) {
 
     /*initialize hwp info*/
-    bo_prefetcher->hwp = hwp;
+    bo_prefetcher->hwp_info = hwp->hwp_info;
+    bo_prefetcher->hwp_info->enabled = TRUE;
+    
 
 
     // rr table
@@ -165,12 +168,15 @@ void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id) {
 }
 
 Flag update_rr_table(Mem_Req* req) {
-    dcache_fill_line(req);
+    //Flag* return_flag = (Flag*)malloc(sizeof(Flag*));
+    Flag return_flag = TRUE;
     void* got;
-    got=hash_table_access_create(bo->rr_table, req->addr, 0);
+
+    dcache_fill_line(req);
+    got = hash_table_access_create(&bo->rr_table, req->addr, 0);
     if (got==NULL){
-            return FALSE;}
-    return TRUE;
+            return_flag = FALSE;}
+    return return_flag;
     /* TODO:
       Call dcache_fill_line or do the cleanup its doing.
       */

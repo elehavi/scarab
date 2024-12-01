@@ -11,8 +11,9 @@
 #include "dcache_stage.h"
 #include "globals/global_types.h"
 #include "libs/hash_lib.h"
-#include "pref_type.h"
+#include "prefetcher/pref_type.h"
 #include "pref_common.h"
+#include "memory/mem_req.h"
 
 typedef unsigned uns;
 /**************************************************************************************/
@@ -38,7 +39,7 @@ typedef unsigned uns;
 
 
 typedef struct Bo_pref_struct {
-    HWP* hwp;
+    HWP_Info* hwp_info;
     Hash_Table rr_table;
     uns score_table[51];
     int offset_list[51];
@@ -57,6 +58,6 @@ void bo_pref_init(HWP* hwp, Pref_BO* pref);
 void bo_ul1_miss(uns8 proc_id, Addr lineAddr, Addr loadPC, uns32 global_hist);
 void bo_ul1_pref_hit(uns8 proc_id, Addr lineAddr, Addr loadPC, uns32 global_hist);
 void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id);
-Flag update_rr_table(Pref_BO* pref, Addr line_addr);
+Flag update_rr_table(Mem_Req* req);
 
 #endif
