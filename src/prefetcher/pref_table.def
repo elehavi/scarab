@@ -88,4 +88,11 @@ HWP pref_table [] = {
 		  NULL,        		NULL,      		NULL,      
           NULL,        		NULL,   	   	NULL,   		
 		  NULL,      		NULL,       		NULL    }
+		   
+    { "bestoffset",  PREF_TO_UL1,  		NULL,   		init_prefetch_bo,   	NULL,
+                  NULL,
+	     	  NULL,        		NULL,      		NULL,     
+	          NULL,   NULL,   	   	NULL,   		
+		  NULL NULL, NULL    },
 };
+//TODO: Check how to handle hit and miss scenarios, maybe have additional funcs?

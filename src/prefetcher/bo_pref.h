@@ -51,7 +51,7 @@ typedef struct Bo_pref_struct {
 /**************************************************************************************/
 /* Functions/Routines */
 
-//void init_prefetch_bo(void);
+void init_prefetch_bo(HWP* hwp);
 void bo_pref_init(HWP* hwp, Pref_BO* pref);
 void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id);
 Flag update_rr_table(Pref_BO* pref, Addr line_addr);

@@ -54,7 +54,7 @@ static const int offset_list[] = {1, 2, 3, 4, 5, 6, 8, 9,
 
 
 /*********************************************************************/
-/*
+
 void init_prefetch_bo(HWP* hwp) {
     if(!PREF_BEST_OFFSET_ON) {
         return;
@@ -62,7 +62,7 @@ void init_prefetch_bo(HWP* hwp) {
     bo_prefetcher = (Pref_BO*)malloc(sizeof(Pref_BO));
 
     bo_pref_init(hwp, bo_prefetcher);
-}*/
+}
 
 void bo_pref_init(HWP* hwp, Pref_BO* bo_prefetcher) {
 

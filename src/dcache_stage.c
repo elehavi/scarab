@@ -145,8 +145,9 @@ void init_dcache_stage(uns8 proc_id, const char* name) {
     */
   if(PREF_BEST_OFFSET_ON){
     pref_init();
-    bo_prefetcher = (Pref_BO*)malloc(sizeof(Pref_BO));
-    bo_pref_init(&hwp, bo_prefetcher);
+    //TODO:Might just need to call the prefetcher init table not inidividual pref
+    // bo_prefetcher = (Pref_BO*)malloc(sizeof(Pref_BO));
+    // bo_pref_init(&hwp, bo_prefetcher);
   }
 }
 
