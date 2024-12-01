@@ -27,6 +27,7 @@
 #include "prefetcher/pref.param.h"
 #include "prefetcher/pref_common.h"
 #include "statistics.h"
+#include "dcache_stage.h"
 
 #define PREF_BEST_OFFSET_ON TRUE
 /**************************************************************************************/
@@ -39,10 +40,9 @@ extern Dcache_Stage* dc;
 /***************************************************************************************/
 /* Local Prototypes */
 
-Pref_BO* bo_hwp;
+Pref_BO* bo;
 
-Hash_Table rr_table;
-Hash_Table score_table;
+
 static const int offset_list[] = {1, 2, 3, 4, 5, 6, 8, 9,
                                         10, 12, 15, 16, 18, 20, 24,
                                         25, 27, 30, 32, 36, 40, 45,
@@ -59,9 +59,8 @@ void init_prefetch_bo(HWP* hwp) {
     if(!PREF_BEST_OFFSET_ON) {
         return;
     }
-    bo_prefetcher = (Pref_BO*)malloc(sizeof(Pref_BO));
-
-    bo_pref_init(hwp, bo_prefetcher);
+   
+    bo_pref_init(hwp, bo);
 }
 
 void bo_pref_init(HWP* hwp, Pref_BO* bo_prefetcher) {
@@ -98,6 +97,15 @@ void bo_pref_init(HWP* hwp, Pref_BO* bo_prefetcher) {
 /*********************************************************************/
 
 
+void bo_ul1_miss(uns8 proc_id, Addr lineAddr, Addr loadPC, uns32 global_hist) {
+    prefetch_round(bo, lineAddr, proc_id);
+}
+
+void bo_ul1_pref_hit(uns8 proc_id, Addr lineAddr, Addr loadPC, uns32 global_hist) {
+    prefetch_round(bo, lineAddr, proc_id);
+}
+
+
 
 void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id) {
     /*
@@ -113,7 +121,7 @@ void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id) {
    /*STEP 1: prefetch memory at X+D (line_addr + big_d)*/
     Addr pf_addr = line_addr + big_d;
     success = new_mem_req(MRT_DPRF, proc_id, pf_addr, DCACHE_LINE_SIZE,
-                            0, NULL, dcache_fill_line, unique_count, 0);
+                            0, NULL, update_rr_table, unique_count, 0);
 
 
     /* STEP 2: Handle one round in algorithm.*/
@@ -156,9 +164,10 @@ void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id) {
     return;
 }
 
-Flag update_rr_table(Pref_BO* pref, Addr line_addr) {
+Flag update_rr_table(Mem_Req* req) {
+    dcache_fill_line(req);
     void* got;
-    got=hash_table_access_create(&pref->rr_table, line_addr, 0);
+    got=hash_table_access_create(bo->rr_table, req->addr, 0);
     if (got==NULL){
             return FALSE;}
     return TRUE;

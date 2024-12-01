@@ -361,11 +361,11 @@ void update_dcache_stage(Stage_Data* src_sd) {
     } else if(line) {  // data cache hit
 
     //TODO: check
-    if(PREF_BEST_OFFSET_ON){
-        if(line->HW_prefetch) {
-          prefetch_round(bo_prefetcher, line_addr, op->proc_id);
-        }
-      }
+    // if(PREF_BEST_OFFSET_ON){
+    //     if(line->HW_prefetch) {
+    //       prefetch_round(bo_prefetcher, line_addr, op->proc_id);
+    //     }
+    //   }
 
 
       if(PREF_FRAMEWORK_ON &&  // if framework is on use new prefetcher.
@@ -668,11 +668,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
 Flag dcache_fill_line(Mem_Req* req) {
 
-  /*
-  TODO:
-  if(PREF_BEST_OFFSET_ON){
-    update_rr_table(bo_prefetcher, line_addr);
-  }*/
+
 
   uns bank = req->addr >> dc->dcache.shift_bits &
              N_BIT_MASK(LOG2(DCACHE_BANKS));
@@ -693,9 +689,9 @@ Flag dcache_fill_line(Mem_Req* req) {
 
   /*
   TODO:*/
-  if(PREF_BEST_OFFSET_ON){
-    update_rr_table(bo_prefetcher, line_addr);
-  }
+  // if(PREF_BEST_OFFSET_ON){
+  //   update_rr_table(bo_prefetcher, line_addr);
+  // }
 
   /* if it can't get a write port, fail */
   if(!get_write_port(&dc->ports[bank])) {
