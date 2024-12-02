@@ -24,24 +24,23 @@
 #include "memory/memory.param.h"
 #include "memory/mem_req.h"
 #include "prefetcher/bo_pref.h"
-// #include "prefetcher//pref_stride.param.h"
 #include "prefetcher/pref.param.h"
 #include "prefetcher/pref_common.h"
 #include "statistics.h"
 #include "dcache_stage.h"
+#include "statistics.h"
 
-#define PREF_BEST_OFFSET_ON TRUE
+
 /**************************************************************************************/
 /* Global Variables */
 
 //extern Memory*       mem;
-extern Dcache_Stage* dc;
 //static Cache*        l1_cache;
 
 /***************************************************************************************/
 /* Local Prototypes */
-
-Pref_BO* bo;
+#define DEBUG(proc_id, args...) _DEBUG(proc_id, DEBUG_PREF_GHB, ##args)
+Pref_BO* bo = (Pref_BO*)malloc(sizeof(Pref_BO));
 
 
 static const int offset_list[] = {1, 2, 3, 4, 5, 6, 8, 9,
@@ -60,7 +59,6 @@ void init_prefetch_bo(HWP* hwp) {
     if(!PREF_BEST_OFFSET_ON) {
         return;
     }
-   
     bo_pref_init(hwp, bo);
 }
 
@@ -121,6 +119,8 @@ void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id) {
    int i= 0;
    int num_offsets = 51;
 
+   STAT_EVENT(proc_id, BEST_OFFSET_COUNT);
+
    /*STEP 1: prefetch memory at X+D (line_addr + big_d)*/
     Addr pf_addr = line_addr + big_d;
     success = new_mem_req(MRT_DPRF, proc_id, pf_addr, DCACHE_LINE_SIZE,
@@ -172,21 +172,11 @@ Flag update_rr_table(Mem_Req* req) {
     Flag return_flag = TRUE;
     void* got;
 
-    dcache_fill_line(req);
+    mlc_fill_line(req); // TODO dcache_fill_line ?
     got = hash_table_access_create(&bo->rr_table, req->addr, 0);
     if (got==NULL){
             return_flag = FALSE;}
     return return_flag;
-    /* TODO:
-      Call dcache_fill_line or do the cleanup its doing.
-      */
-    /* For reference:
-        new_mem_req called in fdip + eic.
-        Both return to instruction_fill_line in icache stage.c.
-        There is a similar dcache_fill_line function in dcache_stage.c
-        We can use these as a basis for this function.
-
-        Can we call dcache fill line??
-        */
+    
 
 }

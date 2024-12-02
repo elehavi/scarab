@@ -103,6 +103,8 @@ DEF_STAT(PREF_HIT_DEMAND_IPREF            ,COUNT,     NO_RATIO)
 DEF_STAT(PREF_HIT_DEMAND_DPRF             ,COUNT,     NO_RATIO) 
 DEF_STAT(PREF_HIT_DEMAND_WB               ,DIST,     NO_RATIO) 
 
+DEF_STAT( BEST_OFFSET_COUNT                  , COUNT     ,     NO_RATIO)
+
 
 DEF_STAT(PREF_L1_FILL                     ,DIST,      NO_RATIO)
 DEF_STAT(DEMAND_L1_FILL                   ,DIST,      NO_RATIO)

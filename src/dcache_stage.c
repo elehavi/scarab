@@ -374,6 +374,9 @@ void update_dcache_stage(Stage_Data* src_sd) {
          (PREF_UPDATE_ON_WRONGPATH || !op->off_path)) {
         if(line->HW_prefetch) {
           pref_dl0_pref_hit(line_addr, op->inst_info->addr, 0);  // CHANGEME
+          // if (PREF_BEST_OFFSET_ON) {
+          //   bo_dl0_pref_hit(line_addr, op->inst_info->addr);
+          // }
           line->HW_prefetch = FALSE;
         } else {
           pref_dl0_hit(line_addr, op->inst_info->addr);
@@ -457,6 +460,9 @@ void update_dcache_stage(Stage_Data* src_sd) {
                      dcache_fill_line, op->unique_num, 0))) {
           if(PREF_UPDATE_ON_WRONGPATH || !op->off_path) {
             pref_dl0_miss(line_addr, op->inst_info->addr);
+            // if (PREF_BEST_OFFSET_ON) {
+            //   bo_dl0_miss(line_addr, op->inst_info->addr);
+            // }
           }
 
           if(ONE_MORE_CACHE_LINE_ENABLE) {
