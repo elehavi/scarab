@@ -26,6 +26,7 @@
 #include "prefetcher/bo_pref.h"
 #include "prefetcher/pref.param.h"
 #include "prefetcher/pref_common.h"
+#include "prefetcher/pref.param.h" //TODO: our own file instead?
 #include "statistics.h"
 #include "dcache_stage.h"
 #include "statistics.h"
@@ -39,8 +40,8 @@
 
 /***************************************************************************************/
 /* Local Prototypes */
-#define DEBUG(proc_id, args...) _DEBUG(proc_id, DEBUG_PREF_GHB, ##args)
-Pref_BO* bo = (Pref_BO*)malloc(sizeof(Pref_BO));
+#define DEBUG(proc_id, args...) _DEBUG(proc_id, DEBUG_DCACHE_STAGE, ##args)
+Pref_BO* bo;
 
 
 static const int offset_list[] = {1, 2, 3, 4, 5, 6, 8, 9,
@@ -56,9 +57,10 @@ static const int offset_list[] = {1, 2, 3, 4, 5, 6, 8, 9,
 /*********************************************************************/
 
 void init_prefetch_bo(HWP* hwp) {
+    STAT_EVENT(0, BEST_OFFSET_COUNT);
     if(!PREF_BEST_OFFSET_ON) {
-        return;
-    }
+        return;}
+    
     bo_pref_init(hwp, bo);
 }
 

@@ -49,7 +49,7 @@
 
 */
 
-DEF_PARAM( pref_framework_on                   , PREF_FRAMEWORK_ON                   , Flag            , Flag               , FALSE     ,    )
+DEF_PARAM( pref_framework_on                   , PREF_FRAMEWORK_ON                   , Flag            , Flag               , TRUE     ,    )
 DEF_PARAM( pref_trace_on                       , PREF_TRACE_ON                       , Flag            , Flag               , FALSE     ,    )
 DEF_PARAM( pref_umlc_on                        , PREF_UMLC_ON                         , Flag            , Flag               , FALSE     ,    )
 DEF_PARAM( pref_ul1_on                         , PREF_UL1_ON                         , Flag            , Flag               , TRUE      ,    )
@@ -72,6 +72,7 @@ DEF_PARAM( pref_dl0schedule_num                , PREF_DL0SCHEDULE_NUM           
 DEF_PARAM( pref_umlc_schedule_num              , PREF_UMLC_SCHEDULE_NUM              , uns             , uns                , 4         ,    )
 DEF_PARAM( pref_ul1schedule_num                , PREF_UL1SCHEDULE_NUM                , uns             , uns                , 4         ,    )
 DEF_PARAM( pref_l1q_demand_reserve             , PREF_L1Q_DEMAND_RESERVE             , uns             , uns                , 0         ,    ) 
+
 
 DEF_PARAM( pref_report_pref_match_as_miss      , PREF_REPORT_PREF_MATCH_AS_MISS      , Flag            , Flag               , FALSE     ,    )
 DEF_PARAM( pref_report_pref_match_as_hit       , PREF_REPORT_PREF_MATCH_AS_HIT       , Flag            , Flag               , TRUE      ,    )
