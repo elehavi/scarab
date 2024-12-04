@@ -59,20 +59,13 @@
 #define DEBUG(proc_id, args...) _DEBUG(proc_id, DEBUG_DCACHE_STAGE, ##args)
 #define STAGE_MAX_OP_COUNT NUM_FUS
 
-#define PREF_BEST_OFFSET_ON TRUE
+
 
 /**************************************************************************************/
 /* Global Variables */
 
 Dcache_Stage* dc = NULL;
 Cache dcache2;
-
-// if(PREF_BEST_OFFSET_ON) {
-HWP hwp;
-Pref_BO* bo_prefetcher;
-//Pref_BO* bo_prefetcher;
-//bo_prefetcher = (Pref_BO*)malloc(sizeof(Pref_BO));
-// }
 
 
 /* create Hash Table to track memory addresses */
@@ -139,17 +132,8 @@ void init_dcache_stage(uns8 proc_id, const char* name) {
 
   memset(dc->rand_wb_state, 0, NUM_ELEMENTS(dc->rand_wb_state));
 
-  /*
-  TODO:
-    checl?
-    */
-  if(PREF_BEST_OFFSET_ON){
-    pref_init();
-    //TODO:Might just need to call the prefetcher init table not inidividual pref
-    // bo_prefetcher = (Pref_BO*)malloc(sizeof(Pref_BO));
-    // bo_pref_init(&hwp, bo_prefetcher);
+
   }
-}
 
 
 /**************************************************************************************/
@@ -360,12 +344,6 @@ void update_dcache_stage(Stage_Data* src_sd) {
       }
     } else if(line) {  // data cache hit
 
-    //TODO: check
-    // if(PREF_BEST_OFFSET_ON){
-    //     if(line->HW_prefetch) {
-    //       prefetch_round(bo_prefetcher, line_addr, op->proc_id);
-    //     }
-    //   }
 
 
       if(PREF_FRAMEWORK_ON &&  // if framework is on use new prefetcher.
@@ -374,9 +352,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
          (PREF_UPDATE_ON_WRONGPATH || !op->off_path)) {
         if(line->HW_prefetch) {
           pref_dl0_pref_hit(line_addr, op->inst_info->addr, 0);  // CHANGEME
-          // if (PREF_BEST_OFFSET_ON) {
-          //   bo_dl0_pref_hit(line_addr, op->inst_info->addr);
-          // }
+        
           line->HW_prefetch = FALSE;
         } else {
           pref_dl0_hit(line_addr, op->inst_info->addr);
@@ -460,9 +436,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
                      dcache_fill_line, op->unique_num, 0))) {
           if(PREF_UPDATE_ON_WRONGPATH || !op->off_path) {
             pref_dl0_miss(line_addr, op->inst_info->addr);
-            // if (PREF_BEST_OFFSET_ON) {
-            //   bo_dl0_miss(line_addr, op->inst_info->addr);
-            // }
+        
           }
 
           if(ONE_MORE_CACHE_LINE_ENABLE) {
@@ -693,11 +667,7 @@ Flag dcache_fill_line(Mem_Req* req) {
   ASSERT(dc->proc_id, req->op_count == req->op_ptrs.count);
   ASSERT(dc->proc_id, req->op_count == req->op_uniques.count);
 
-  /*
-  TODO:*/
-  // if(PREF_BEST_OFFSET_ON){
-  //   update_rr_table(bo_prefetcher, line_addr);
-  // }
+
 
   /* if it can't get a write port, fail */
   if(!get_write_port(&dc->ports[bank])) {

@@ -72,6 +72,9 @@ DEF_PARAM( pref_dl0schedule_num                , PREF_DL0SCHEDULE_NUM           
 DEF_PARAM( pref_umlc_schedule_num              , PREF_UMLC_SCHEDULE_NUM              , uns             , uns                , 4         ,    )
 DEF_PARAM( pref_ul1schedule_num                , PREF_UL1SCHEDULE_NUM                , uns             , uns                , 4         ,    )
 DEF_PARAM( pref_l1q_demand_reserve             , PREF_L1Q_DEMAND_RESERVE             , uns             , uns                , 0         ,    ) 
+DEF_PARAM( pref_best_offset_on                   , PREF_BEST_OFFSET_ON                   , Flag            , Flag               , TRUE     ,    )
+DEF_PARAM( best_offset_roundmax                , BEST_OFFSET_ROUNDMAX                , uns             , uns                , 15         ,    )
+DEF_PARAM( best_offset_scoremax                , BEST_OFFSET_SCOREMAX                , uns             , uns                , 3         ,    )
 
 
 DEF_PARAM( pref_report_pref_match_as_miss      , PREF_REPORT_PREF_MATCH_AS_MISS      , Flag            , Flag               , FALSE     ,    )

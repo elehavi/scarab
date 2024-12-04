@@ -24,19 +24,12 @@
 #include "memory/memory.param.h"
 #include "memory/mem_req.h"
 #include "prefetcher/bo_pref.h"
-#include "prefetcher/pref.param.h"
 #include "prefetcher/pref_common.h"
 #include "prefetcher/pref.param.h" //TODO: our own file instead?
-#include "statistics.h"
 #include "dcache_stage.h"
-#include "statistics.h"
 
 
-/**************************************************************************************/
-/* Global Variables */
 
-//extern Memory*       mem;
-//static Cache*        l1_cache;
 
 /***************************************************************************************/
 /* Local Prototypes */
@@ -61,7 +54,14 @@ void init_prefetch_bo(HWP* hwp) {
     if(!PREF_BEST_OFFSET_ON) {
         return;}
     
+    bo = (Pref_BO*)calloc(1, sizeof(Pref_BO));
     bo_pref_init(hwp, bo);
+    /*
+    how 2 check w gdb...
+    - b bo_pref.c:line#
+    - run with parameters (run --pref_best_offset_on)
+    - print parameter (p PREF_BEST_OFFSET_ON)
+    */
 }
 
 void bo_pref_init(HWP* hwp, Pref_BO* bo_prefetcher) {
@@ -89,8 +89,8 @@ void bo_pref_init(HWP* hwp, Pref_BO* bo_prefetcher) {
     //bo_prefetcher->offset_list = offset_list;
 
     //TODO: malloc for these?
-    bo_prefetcher->roundmax = 1;
-    bo_prefetcher->scoremax = 15;
+    bo_prefetcher->roundmax = BEST_OFFSET_ROUNDMAX;
+    bo_prefetcher->scoremax = BEST_OFFSET_SCOREMAX;
     bo_prefetcher->curr_offset = 1;
     bo_prefetcher->round = 0;
     bo_prefetcher->badscore = 0;
@@ -100,17 +100,17 @@ void bo_pref_init(HWP* hwp, Pref_BO* bo_prefetcher) {
 /*********************************************************************/
 
 
-void bo_ul1_miss(uns8 proc_id, Addr lineAddr, Addr loadPC, uns32 global_hist) {
-    prefetch_round(bo, lineAddr, proc_id);
+void bo_dl0_miss(Addr lineAddr, Addr loadPC) {
+    prefetch_round(bo, lineAddr);
 }
 
-void bo_ul1_pref_hit(uns8 proc_id, Addr lineAddr, Addr loadPC, uns32 global_hist) {
-    prefetch_round(bo, lineAddr, proc_id);
+void bo_dl0_pref_hit(Addr lineAddr, Addr loadPC) {
+    prefetch_round(bo, lineAddr);
 }
 
 
 
-void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id) {
+void prefetch_round(Pref_BO* prefetcher, Addr line_addr) {
     /*
     INPUTS: Address being accessed , offset tested, current ideal offset, RR table, Score table
     OUTPUTS:
@@ -118,21 +118,30 @@ void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id) {
    uns big_d = prefetcher->curr_offset;
    uns d = 0;
    int success = 0;
-   int i= 0;
+   int i = 0;
+   int offset_bits;
+   int line_size = DCACHE_LINE_SIZE;
    int num_offsets = 51;
 
-   STAT_EVENT(proc_id, BEST_OFFSET_COUNT);
+   STAT_EVENT(0, BEST_OFFSET_COUNT);
 
    /*STEP 1: prefetch memory at X+D (line_addr + big_d)*/
-    Addr pf_addr = line_addr + big_d;
-    success = new_mem_req(MRT_DPRF, proc_id, pf_addr, DCACHE_LINE_SIZE,
+   //shift big_d by num offset bits
+    while (line_size > 1)
+    {
+        line_size = line_size >> 1;
+        offset_bits++;
+    }
+    // calculate the address by adding the current offset shifted by offset bits 2 the line address
+    Addr pf_addr = line_addr + (big_d<<offset_bits);
+    success = new_mem_req(MRT_DPRF, 0, pf_addr, DCACHE_LINE_SIZE,
                             0, NULL, update_rr_table, unique_count, 0);
 
 
     /* STEP 2: Handle one round in algorithm.*/
     if(prefetcher->round == 0) {
         //  set values in score table to 0
-        for(int i = 0; i < 51; i++) {
+        for(i = 0; i < 51; i++) {
             prefetcher->score_table[i] = 0;
         }
     }
@@ -172,13 +181,19 @@ void prefetch_round(Pref_BO* prefetcher, Addr line_addr, uns proc_id) {
 Flag update_rr_table(Mem_Req* req) {
     //Flag* return_flag = (Flag*)malloc(sizeof(Flag*));
     Flag return_flag = TRUE;
+    Flag new_entry = FALSE;
     void* got;
 
-    mlc_fill_line(req); // TODO dcache_fill_line ?
-    got = hash_table_access_create(&bo->rr_table, req->addr, 0);
+    dcache_fill_line(req); // TODO dcache_fill_line ?
+    got = hash_table_access_create(&bo->rr_table, req->addr, &new_entry);
     if (got==NULL){
             return_flag = FALSE;}
     return return_flag;
     
 
 }
+
+/* TODO: check
+    - DCACHE miss/hit
+    - IPC
+*/
